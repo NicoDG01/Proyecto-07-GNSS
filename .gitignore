@@ -1,3 +1,11 @@
 .venv/
 __pycache__/
 *.pyc
+
+# Entorno virtual y caché de Python
+venv/
+__pycache__/
+*.pyc
+*.pyo
+.vscode/
+Enunciado-PRJ07.pdf
