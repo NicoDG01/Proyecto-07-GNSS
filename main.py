@@ -1,7 +1,10 @@
+"""Punto de entrada y controlador principal de la aplicación PRGII-PRJ07."""
+
 import os
 import sys
+import pandas as pd
 from PySide6.QtCore import Qt
-from PySide6.QtGui import QAction, QColor, QBrush
+from PySide6.QtGui import QAction, QBrush, QColor
 from PySide6.QtWidgets import (
     QApplication,
     QFileDialog,
@@ -11,13 +14,10 @@ from PySide6.QtWidgets import (
 )
 
 from AnalizadorGNSS import Ui_MainWindow
-from procesador_gnss import ProcesadorGNSS
-from graficos_gnss import GestorGraficosGNSS
+from graficos_gnss import ContextoGrafico, GestorGraficosGNSS
+from procesador_gnss import ParametrosAnalisis, ProcesadorGNSS
 
-
-NOMBRES_RECEPTORES = {
-    f"R{i:02d}": f"R{i:02d} - Receptor {i}" for i in range(1, 11)
-}
+NOMBRES_RECEPTORES = {f"R{i:02d}": f"R{i:02d} - Receptor {i}" for i in range(1, 11)}
 
 
 class VentanaMonitorGNSS(QMainWindow, Ui_MainWindow):
@@ -34,43 +34,37 @@ class VentanaMonitorGNSS(QMainWindow, Ui_MainWindow):
             self.widget_graf_satelites,
             self.widget_graf_estado,
         )
+        self.action_acerca_de = QAction("Acerca de...", self)
 
         self._configurar_controles()
         self._conectar_senales()
 
-        # Carga automática si gnss.csv está en el mismo directorio de trabajo
         ruta_local = os.path.join(os.path.dirname(os.path.abspath(__file__)), "gnss.csv")
         if os.path.exists(ruta_local):
             self.cargar_archivo(ruta_local)
 
-    def _configurar_controles(self):
+    def _configurar_controles(self) -> None:
         """Establece los parámetros por defecto definidos en RF-04."""
-        # Umbral HDOP (por defecto: 3.0)
         self.spin_umbral_hdop.setRange(0.1, 50.0)
         self.spin_umbral_hdop.setSingleStep(0.5)
         self.spin_umbral_hdop.setValue(3.0)
 
-        # Umbral error (m) (doubleSpinBox_2 en .ui -> por defecto: 10.0)
         self.doubleSpinBox_2.setDecimals(1)
         self.doubleSpinBox_2.setRange(0.1, 100.0)
         self.doubleSpinBox_2.setSingleStep(1.0)
         self.doubleSpinBox_2.setValue(10.0)
 
-        # Umbral satélites (spinBox en .ui -> por defecto: 6)
         self.spinBox.setRange(1, 30)
         self.spinBox.setValue(6)
 
-        # Ventana promedio móvil (spinBox_2 en .ui -> por defecto: 30)
         self.spinBox_2.setRange(1, 500)
         self.spinBox_2.setValue(30)
 
-        # Opción en menú Ayuda
-        self.action_acerca_de = QAction("Acerca de...", self)
         self.menuAyuda.addAction(self.action_acerca_de)
-
         self.statusbar.showMessage("Listo. Seleccione un archivo CSV para comenzar.")
 
-    def _conectar_senales(self):
+    def _conectar_senales(self) -> None:
+        """Conecta los eventos de la interfaz con sus métodos manejadores."""
         self.btn_explorar.clicked.connect(self.seleccionar_archivo)
         self.action_abrir_csv.triggered.connect(self.seleccionar_archivo)
         self.action_cerrar.triggered.connect(self.close)
@@ -78,7 +72,17 @@ class VentanaMonitorGNSS(QMainWindow, Ui_MainWindow):
         self.btn_analizar.clicked.connect(self.ejecutar_analisis)
         self.combo_receptor.currentIndexChanged.connect(self.actualizar_vista_receptor)
 
-    def seleccionar_archivo(self):
+    def _leer_parametros_ui(self) -> ParametrosAnalisis:
+        """Obtiene los valores actuales de los controles de umbral y ventana."""
+        return ParametrosAnalisis(
+            umbral_hdop=self.spin_umbral_hdop.value(),
+            umbral_error=self.doubleSpinBox_2.value(),
+            umbral_satelites=self.spinBox.value(),
+            ventana_movil=self.spinBox_2.value(),
+        )
+
+    def seleccionar_archivo(self) -> None:
+        """Abre el diálogo explorador para seleccionar un archivo CSV (RF-01)."""
         ruta, _ = QFileDialog.getOpenFileName(
             self,
             "Seleccionar archivo de mediciones GNSS",
@@ -88,28 +92,28 @@ class VentanaMonitorGNSS(QMainWindow, Ui_MainWindow):
         if ruta:
             self.cargar_archivo(ruta)
 
-    def cargar_archivo(self, ruta: str):
+    def cargar_archivo(self, ruta: str) -> None:
+        """Carga el CSV seleccionado y actualiza el selector de receptores."""
         try:
             self.procesador.cargar_csv(ruta)
             self.txt_archivo.setText(os.path.basename(ruta))
 
             self.combo_receptor.blockSignals(True)
             self.combo_receptor.clear()
-            receptores = sorted(self.procesador.df_limpio["receptor"].unique())
-            for rec in receptores:
-                etiqueta = NOMBRES_RECEPTORES.get(rec, rec)
-                self.combo_receptor.addItem(etiqueta, userData=rec)
+            for rec in sorted(self.procesador.df_limpio["receptor"].unique()):
+                self.combo_receptor.addItem(NOMBRES_RECEPTORES.get(rec, rec), userData=rec)
             self.combo_receptor.blockSignals(False)
 
             self.ejecutar_analisis()
-        except Exception as exc:
+        except (OSError, ValueError, KeyError, pd.errors.ParserError) as exc:
             QMessageBox.critical(
                 self,
                 "Error al cargar CSV",
                 f"No se pudo procesar el archivo seleccionado:\n{exc}",
             )
 
-    def ejecutar_analisis(self):
+    def ejecutar_analisis(self) -> None:
+        """Ejecuta el análisis completo y refresca informe, tabla y gráficos (RF-05)."""
         if self.procesador.df_limpio is None:
             QMessageBox.warning(
                 self,
@@ -118,45 +122,38 @@ class VentanaMonitorGNSS(QMainWindow, Ui_MainWindow):
             )
             return
 
-        umbral_hdop = self.spin_umbral_hdop.value()
-        umbral_error = self.doubleSpinBox_2.value()
-        umbral_sat = self.spinBox.value()
-        ventana = self.spinBox_2.value()
-
+        params = self._leer_parametros_ui()
         try:
-            self.procesador.analizar(umbral_hdop, umbral_error, umbral_sat, ventana)
+            self.procesador.analizar(params)
             self._actualizar_informe()
             self._actualizar_tabla()
             self.actualizar_vista_receptor()
 
             cant_rec = len(self.procesador.resumen_receptores)
             self.statusbar.showMessage(f"Análisis completo: {cant_rec} receptores procesados")
-        except Exception as exc:
+        except (ValueError, KeyError, RuntimeError) as exc:
             QMessageBox.critical(
                 self,
                 "Error en el análisis",
                 f"Ocurrió un problema durante el cálculo:\n{exc}",
             )
 
-    def _actualizar_informe(self):
+    def _actualizar_informe(self) -> None:
         """Renderiza el informe diagnóstico en el panel izquierdo (RF-07)."""
         rep = self.procesador.reporte_limpieza
         problemas = self.procesador.diagnosticos
 
-        items_html = ""
         if problemas:
-            for p in problemas:
-                partes = p.split(":", 1)
-                items_html += f"<li><b>{partes[0]}:</b>{partes[1]}</li>"
+            items = "".join(
+                f"<li><b>{p.split(':', 1)[0]}:</b>{p.split(':', 1)[1]}</li>" for p in problemas
+            )
         else:
-            items_html = "<li>Sin anomalías detectadas bajo los umbrales actuales.</li>"
+            items = "<li>Sin anomalías detectadas bajo los umbrales actuales.</li>"
 
         html = f"""
         <div style="font-family: sans-serif; font-size: 9.5pt;">
             <p style="margin-bottom: 4px;"><b>Receptores con problemas</b></p>
-            <ul style="margin-top: 2px; padding-left: 18px;">
-                {items_html}
-            </ul>
+            <ul style="margin-top: 2px; padding-left: 18px;">{items}</ul>
             <hr>
             <p style="margin-bottom: 4px;"><b>Calidad GNSS y Preprocesamiento</b></p>
             <p style="margin: 2px 0; font-size: 8.5pt; color: #333;">
@@ -169,15 +166,15 @@ class VentanaMonitorGNSS(QMainWindow, Ui_MainWindow):
         """
         self.txt_informe.setHtml(html)
 
-    def _actualizar_tabla(self):
+    def _actualizar_tabla(self) -> None:
         """Puebla la tabla resumen con código de colores por estado (RF-08)."""
         datos = self.procesador.resumen_receptores
         self.tabla_resumen.setRowCount(len(datos))
 
         colores_estado = {
-            "Normal": QColor("#d4edda"),   # Verde suave
-            "Alerta": QColor("#fff3cd"),   # Amarillo suave
-            "Crítico": QColor("#f8d7da"),  # Rojo suave
+            "Normal": QColor("#d4edda"),
+            "Alerta": QColor("#fff3cd"),
+            "Crítico": QColor("#f8d7da"),
         }
 
         for fila, item in enumerate(datos):
@@ -195,25 +192,19 @@ class VentanaMonitorGNSS(QMainWindow, Ui_MainWindow):
                     celda.setBackground(QBrush(colores_estado[texto]))
                 self.tabla_resumen.setItem(fila, col, celda)
 
-    def actualizar_vista_receptor(self):
+    def actualizar_vista_receptor(self) -> None:
         """Actualiza los 3 gráficos temporales para el receptor seleccionado (RF-06)."""
         if self.procesador.df_limpio is None or self.combo_receptor.count() == 0:
             return
 
         receptor = self.combo_receptor.currentData()
-        ventana = self.spinBox_2.value()
-        df_rec = self.procesador.obtener_datos_receptor(receptor, ventana)
+        params = self._leer_parametros_ui()
+        df_rec = self.procesador.obtener_datos_receptor(receptor, params.ventana_movil)
+        contexto = ContextoGrafico(receptor=receptor, params=params)
+        self.gestor_graficos.actualizar_graficos(df_rec, contexto)
 
-        self.gestor_graficos.actualizar_graficos(
-            df_rec=df_rec,
-            receptor=receptor,
-            umbral_hdop=self.spin_umbral_hdop.value(),
-            umbral_error=self.doubleSpinBox_2.value(),
-            umbral_satelites=self.spinBox.value(),
-            ventana=ventana,
-        )
-
-    def mostrar_acerca_de(self):
+    def mostrar_acerca_de(self) -> None:
+        """Muestra la ventana modal con información del proyecto y autores."""
         QMessageBox.information(
             self,
             "Acerca de PRGII-PRJ07",
@@ -223,7 +214,8 @@ class VentanaMonitorGNSS(QMainWindow, Ui_MainWindow):
         )
 
 
-def main():
+def main() -> None:
+    """Inicializa y ejecuta el bucle principal de la interfaz gráfica."""
     app = QApplication(sys.argv)
     ventana = VentanaMonitorGNSS()
     ventana.show()
