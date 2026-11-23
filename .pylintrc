@@ -3,3 +3,4 @@ extension-pkg-allow-list=PySide6
 
 [TYPECHECK]
 ignored-classes=SignalInstance,QAction,QPushButton,QComboBox
+generated-members=clicked,triggered,currentIndexChanged,connect
