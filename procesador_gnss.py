@@ -89,7 +89,36 @@ class ProcesadorGNSS:
             self.resumen_receptores.append(resumen_rec)
             for prob in problemas_rec:
                 self.diagnosticos.append(f"{rec}: {prob}")
+                
+    def calcular_calidad_global(self, params: ParametrosAnalisis) -> dict:
+        """Calcula indicadores globales de la red: disponibilidad y mediciones desfavorables."""
+        if self.df_limpio is None or self.df_limpio.empty:
+            raise ValueError("No hay datos cargados para analizar.")
 
+        df = self.df_limpio
+
+        def pct_sobre(serie: pd.Series, condicion: pd.Series) -> float:
+            """Porcentaje de la condición, contando solo mediciones con valor válido."""
+            validas = serie.notna()
+            if not validas.any():
+                return 0.0
+            return float(condicion[validas].mean() * 100.0)
+
+        con_solucion = df["estado"].str.strip().isin(["FIX_2D", "FIX_3D"])
+        estados = [r["estado"] for r in self.resumen_receptores]
+
+        return {
+            "disponibilidad": float(con_solucion.mean() * 100.0),
+            "pct_hdop_alto": pct_sobre(df["hdop"], df["hdop"] > params.umbral_hdop),
+            "pct_error_alto": pct_sobre(df["error_m"], df["error_m"] > params.umbral_error),
+            "pct_sats_bajos": pct_sobre(
+                df["satelites"], df["satelites"] < params.umbral_satelites
+            ),
+            "normal": estados.count("Normal"),
+            "alerta": estados.count("Alerta"),
+            "critico": estados.count("Crítico"),
+        }
+    
     def _evaluar_receptor(
         self, rec: str, sub: pd.DataFrame, params: ParametrosAnalisis
     ) -> tuple[dict, list[str]]:

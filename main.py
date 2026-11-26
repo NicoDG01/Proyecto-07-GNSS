@@ -44,22 +44,7 @@ class VentanaMonitorGNSS(QMainWindow, Ui_MainWindow):
             self.cargar_archivo(ruta_local)
 
     def _configurar_controles(self) -> None:
-        """Establece los parámetros por defecto definidos en RF-04."""
-        self.spin_umbral_hdop.setRange(0.1, 50.0)
-        self.spin_umbral_hdop.setSingleStep(0.5)
-        self.spin_umbral_hdop.setValue(3.0)
-
-        self.doubleSpinBox_2.setDecimals(1)
-        self.doubleSpinBox_2.setRange(0.1, 100.0)
-        self.doubleSpinBox_2.setSingleStep(1.0)
-        self.doubleSpinBox_2.setValue(10.0)
-
-        self.spinBox.setRange(1, 30)
-        self.spinBox.setValue(6)
-
-        self.spinBox_2.setRange(1, 500)
-        self.spinBox_2.setValue(30)
-
+        """Agrega 'Acerca de...' al menú Ayuda (los valores por defecto vienen del .ui)."""
         self.menuAyuda.addAction(self.action_acerca_de)
         self.statusbar.showMessage("Listo. Seleccione un archivo CSV para comenzar.")
 
@@ -76,10 +61,10 @@ class VentanaMonitorGNSS(QMainWindow, Ui_MainWindow):
         """Obtiene los valores actuales de los controles de umbral y ventana."""
         return ParametrosAnalisis(
             umbral_hdop=self.spin_umbral_hdop.value(),
-            umbral_error=self.doubleSpinBox_2.value(),
-            umbral_satelites=self.spinBox.value(),
-            ventana_movil=self.spinBox_2.value(),
-        )
+            umbral_error=self.spin_umbral_error.value(),
+            umbral_satelites=self.spin_umbral_satelites.value(),
+            ventana_movil=self.spin_ventana_movil.value(),
+    )
 
     def seleccionar_archivo(self) -> None:
         """Abre el diálogo explorador para seleccionar un archivo CSV (RF-01)."""
@@ -125,7 +110,7 @@ class VentanaMonitorGNSS(QMainWindow, Ui_MainWindow):
         params = self._leer_parametros_ui()
         try:
             self.procesador.analizar(params)
-            self._actualizar_informe()
+            self._actualizar_informe(params)      # <- ahora recibe params
             self._actualizar_tabla()
             self.actualizar_vista_receptor()
 
@@ -138,10 +123,11 @@ class VentanaMonitorGNSS(QMainWindow, Ui_MainWindow):
                 f"Ocurrió un problema durante el cálculo:\n{exc}",
             )
 
-    def _actualizar_informe(self) -> None:
-        """Renderiza el informe diagnóstico en el panel izquierdo (RF-07)."""
+    def _actualizar_informe(self, params: ParametrosAnalisis) -> None:
+        """Renderiza el informe diagnóstico y el bloque Calidad GNSS (RF-07)."""
         rep = self.procesador.reporte_limpieza
         problemas = self.procesador.diagnosticos
+        cal = self.procesador.calcular_calidad_global(params)
 
         if problemas:
             items = "".join(
@@ -150,12 +136,25 @@ class VentanaMonitorGNSS(QMainWindow, Ui_MainWindow):
         else:
             items = "<li>Sin anomalías detectadas bajo los umbrales actuales.</li>"
 
+        lineas_calidad = [
+            f"Disponibilidad de solución: <b>{cal['disponibilidad']:.1f} %</b>",
+            f"HDOP &gt; {params.umbral_hdop:.1f}: <b>{cal['pct_hdop_alto']:.1f} %</b>",
+            f"Error &gt; {params.umbral_error:.1f} m: <b>{cal['pct_error_alto']:.1f} %</b>",
+            f"Satélites &lt; {params.umbral_satelites}: <b>{cal['pct_sats_bajos']:.1f} %</b>",
+            "Receptores Normal / Alerta / Crítico: "
+            f"<b>{cal['normal']} / {cal['alerta']} / {cal['critico']}</b>",
+        ]
+        calidad = "<br>".join(f"• {linea}" for linea in lineas_calidad)
+
         html = f"""
         <div style="font-family: sans-serif; font-size: 9.5pt;">
             <p style="margin-bottom: 4px;"><b>Receptores con problemas</b></p>
             <ul style="margin-top: 2px; padding-left: 18px;">{items}</ul>
             <hr>
-            <p style="margin-bottom: 4px;"><b>Calidad GNSS y Preprocesamiento</b></p>
+            <p style="margin-bottom: 4px;"><b>Calidad GNSS</b> (% de mediciones de la red)</p>
+            <p style="margin: 2px 0; font-size: 8.5pt; color: #333;">{calidad}</p>
+            <hr>
+            <p style="margin-bottom: 4px;"><b>Preprocesamiento de datos</b></p>
             <p style="margin: 2px 0; font-size: 8.5pt; color: #333;">
                 • Registros leídos: <b>{rep.get('total_inicial', 0)}</b><br>
                 • Duplicados eliminados: <b>{rep.get('duplicados_eliminados', 0)}</b><br>
@@ -192,6 +191,7 @@ class VentanaMonitorGNSS(QMainWindow, Ui_MainWindow):
                     celda.setBackground(QBrush(colores_estado[texto]))
                 self.tabla_resumen.setItem(fila, col, celda)
 
+    
     def actualizar_vista_receptor(self) -> None:
         """Actualiza los 3 gráficos temporales para el receptor seleccionado (RF-06)."""
         if self.procesador.df_limpio is None or self.combo_receptor.count() == 0:
