@@ -2,6 +2,14 @@
 <ui version="4.0">
  <class>MainWindow</class>
  <widget class="QMainWindow" name="MainWindow">
+  <property name="geometry">
+   <rect>
+    <x>0</x>
+    <y>0</y>
+    <width>1148</width>
+    <height>792</height>
+   </rect>
+  </property>
   <property name="windowTitle">
    <string>PRGII-PRJ07 - Monitor de calidad de recepción GNSS</string>
   </property>
@@ -84,11 +92,17 @@
            <property name="decimals">
             <number>1</number>
            </property>
+           <property name="minimum">
+            <double>0.100000000000000</double>
+           </property>
+           <property name="maximum">
+            <double>50.000000000000000</double>
+           </property>
            <property name="singleStep">
-            <double>1.000000000000000</double>
+            <double>0.500000000000000</double>
            </property>
            <property name="value">
-            <double>0.000000000000000</double>
+            <double>3.000000000000000</double>
            </property>
           </widget>
          </item>
@@ -114,23 +128,50 @@
           </widget>
          </item>
          <item row="1" column="1">
-          <widget class="QDoubleSpinBox" name="doubleSpinBox_2">
+          <widget class="QDoubleSpinBox" name="spin_umbral_error">
            <property name="alignment">
             <set>Qt::AlignmentFlag::AlignRight|Qt::AlignmentFlag::AlignTrailing|Qt::AlignmentFlag::AlignVCenter</set>
+           </property>
+           <property name="decimals">
+            <number>1</number>
+           </property>
+           <property name="minimum">
+            <double>0.100000000000000</double>
+           </property>
+           <property name="value">
+            <double>10.000000000000000</double>
            </property>
           </widget>
          </item>
          <item row="2" column="1">
-          <widget class="QSpinBox" name="spinBox">
+          <widget class="QSpinBox" name="spin_umbral_satelites">
            <property name="alignment">
             <set>Qt::AlignmentFlag::AlignRight|Qt::AlignmentFlag::AlignTrailing|Qt::AlignmentFlag::AlignVCenter</set>
+           </property>
+           <property name="minimum">
+            <number>1</number>
+           </property>
+           <property name="maximum">
+            <number>30</number>
+           </property>
+           <property name="value">
+            <number>6</number>
            </property>
           </widget>
          </item>
          <item row="3" column="1">
-          <widget class="QSpinBox" name="spinBox_2">
+          <widget class="QSpinBox" name="spin_ventana_movil">
            <property name="alignment">
             <set>Qt::AlignmentFlag::AlignRight|Qt::AlignmentFlag::AlignTrailing|Qt::AlignmentFlag::AlignVCenter</set>
+           </property>
+           <property name="minimum">
+            <number>1</number>
+           </property>
+           <property name="maximum">
+            <number>500</number>
+           </property>
+           <property name="value">
+            <number>30</number>
            </property>
           </widget>
          </item>
@@ -183,9 +224,7 @@
        </item>
       </layout>
       <zorder>combo_receptor</zorder>
-      <zorder>btn_explorar</zorder>
       <zorder></zorder>
-      <zorder>formLayoutWidget</zorder>
       <zorder>line</zorder>
       <zorder>label_5</zorder>
       <zorder>line_2</zorder>
@@ -279,7 +318,7 @@
     <rect>
      <x>0</x>
      <y>0</y>
-     <width>1200</width>
+     <width>1148</width>
      <height>22</height>
     </rect>
    </property>

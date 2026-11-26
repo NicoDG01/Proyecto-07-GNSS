@@ -27,6 +27,7 @@ class Ui_MainWindow(object):
     def setupUi(self, MainWindow):
         if not MainWindow.objectName():
             MainWindow.setObjectName(u"MainWindow")
+        MainWindow.resize(1148, 792)
         self.action_abrir_csv = QAction(MainWindow)
         self.action_abrir_csv.setObjectName(u"action_abrir_csv")
         self.action_cerrar = QAction(MainWindow)
@@ -72,8 +73,10 @@ class Ui_MainWindow(object):
         self.spin_umbral_hdop.setObjectName(u"spin_umbral_hdop")
         self.spin_umbral_hdop.setAlignment(Qt.AlignmentFlag.AlignRight|Qt.AlignmentFlag.AlignTrailing|Qt.AlignmentFlag.AlignVCenter)
         self.spin_umbral_hdop.setDecimals(1)
-        self.spin_umbral_hdop.setSingleStep(1.000000000000000)
-        self.spin_umbral_hdop.setValue(0.000000000000000)
+        self.spin_umbral_hdop.setMinimum(0.100000000000000)
+        self.spin_umbral_hdop.setMaximum(50.000000000000000)
+        self.spin_umbral_hdop.setSingleStep(0.500000000000000)
+        self.spin_umbral_hdop.setValue(3.000000000000000)
 
         self.formLayout.setWidget(0, QFormLayout.ItemRole.FieldRole, self.spin_umbral_hdop)
 
@@ -92,23 +95,32 @@ class Ui_MainWindow(object):
 
         self.formLayout.setWidget(1, QFormLayout.ItemRole.LabelRole, self.label_4)
 
-        self.doubleSpinBox_2 = QDoubleSpinBox(self.panel_izquierdo)
-        self.doubleSpinBox_2.setObjectName(u"doubleSpinBox_2")
-        self.doubleSpinBox_2.setAlignment(Qt.AlignmentFlag.AlignRight|Qt.AlignmentFlag.AlignTrailing|Qt.AlignmentFlag.AlignVCenter)
+        self.spin_umbral_error = QDoubleSpinBox(self.panel_izquierdo)
+        self.spin_umbral_error.setObjectName(u"spin_umbral_error")
+        self.spin_umbral_error.setAlignment(Qt.AlignmentFlag.AlignRight|Qt.AlignmentFlag.AlignTrailing|Qt.AlignmentFlag.AlignVCenter)
+        self.spin_umbral_error.setDecimals(1)
+        self.spin_umbral_error.setMinimum(0.100000000000000)
+        self.spin_umbral_error.setValue(10.000000000000000)
 
-        self.formLayout.setWidget(1, QFormLayout.ItemRole.FieldRole, self.doubleSpinBox_2)
+        self.formLayout.setWidget(1, QFormLayout.ItemRole.FieldRole, self.spin_umbral_error)
 
-        self.spinBox = QSpinBox(self.panel_izquierdo)
-        self.spinBox.setObjectName(u"spinBox")
-        self.spinBox.setAlignment(Qt.AlignmentFlag.AlignRight|Qt.AlignmentFlag.AlignTrailing|Qt.AlignmentFlag.AlignVCenter)
+        self.spin_umbral_satelites = QSpinBox(self.panel_izquierdo)
+        self.spin_umbral_satelites.setObjectName(u"spin_umbral_satelites")
+        self.spin_umbral_satelites.setAlignment(Qt.AlignmentFlag.AlignRight|Qt.AlignmentFlag.AlignTrailing|Qt.AlignmentFlag.AlignVCenter)
+        self.spin_umbral_satelites.setMinimum(1)
+        self.spin_umbral_satelites.setMaximum(30)
+        self.spin_umbral_satelites.setValue(6)
 
-        self.formLayout.setWidget(2, QFormLayout.ItemRole.FieldRole, self.spinBox)
+        self.formLayout.setWidget(2, QFormLayout.ItemRole.FieldRole, self.spin_umbral_satelites)
 
-        self.spinBox_2 = QSpinBox(self.panel_izquierdo)
-        self.spinBox_2.setObjectName(u"spinBox_2")
-        self.spinBox_2.setAlignment(Qt.AlignmentFlag.AlignRight|Qt.AlignmentFlag.AlignTrailing|Qt.AlignmentFlag.AlignVCenter)
+        self.spin_ventana_movil = QSpinBox(self.panel_izquierdo)
+        self.spin_ventana_movil.setObjectName(u"spin_ventana_movil")
+        self.spin_ventana_movil.setAlignment(Qt.AlignmentFlag.AlignRight|Qt.AlignmentFlag.AlignTrailing|Qt.AlignmentFlag.AlignVCenter)
+        self.spin_ventana_movil.setMinimum(1)
+        self.spin_ventana_movil.setMaximum(500)
+        self.spin_ventana_movil.setValue(30)
 
-        self.formLayout.setWidget(3, QFormLayout.ItemRole.FieldRole, self.spinBox_2)
+        self.formLayout.setWidget(3, QFormLayout.ItemRole.FieldRole, self.spin_ventana_movil)
 
 
         self.verticalLayout.addLayout(self.formLayout)
@@ -154,7 +166,6 @@ class Ui_MainWindow(object):
         self.verticalLayout.addWidget(self.txt_informe)
 
         self.combo_receptor.raise_()
-        self.btn_explorar.raise_()
         self.line.raise_()
         self.label_5.raise_()
         self.line_2.raise_()
@@ -226,7 +237,7 @@ class Ui_MainWindow(object):
         MainWindow.setCentralWidget(self.centralwidget)
         self.menubar = QMenuBar(MainWindow)
         self.menubar.setObjectName(u"menubar")
-        self.menubar.setGeometry(QRect(0, 0, 1200, 22))
+        self.menubar.setGeometry(QRect(0, 0, 1148, 22))
         self.menuArchivo = QMenu(self.menubar)
         self.menuArchivo.setObjectName(u"menuArchivo")
         self.menuAyuda = QMenu(self.menubar)
