@@ -228,14 +228,10 @@ class ProcesadorGNSS:
             or error_prom > params.umbral_error
         ):
             return "Crítico"
-        if (
-            problemas
-            or hdop_prom > (params.umbral_hdop * 0.42)
-            or error_prom > (params.umbral_error * 0.28)
-        ):
+        if problemas:
             return "Alerta"
         return "Normal"
-
+ 
     def obtener_datos_receptor(self, receptor: str, ventana_movil: int) -> pd.DataFrame:
         """Devuelve la serie temporal de un receptor con promedio móvil (RF-04, RF-06)."""
         if self.df_limpio is None:
